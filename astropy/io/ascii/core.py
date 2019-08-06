@@ -226,6 +226,11 @@ class IntType(NumType):
     Describes integer data.
     """
 
+class DateType(NoType):
+    """
+    Indicates that a column consists of date data.
+    """
+
 
 class AllType(StrType, FloatType, IntType):
     """
@@ -865,6 +870,8 @@ def convert_numpy(numpy_type):
         converter_type = BoolType
     elif 'str' in type_name:
         converter_type = StrType
+    elif 'date' in type_name:
+        converter_type = DateType
     else:
         converter_type = AllType
 
@@ -968,7 +975,8 @@ class TableOutputter(BaseOutputter):
 
     default_converters = [convert_numpy(numpy.int),
                           convert_numpy(numpy.float),
-                          convert_numpy(numpy.str)]
+                          convert_numpy(numpy.str),
+                          convert_numpy(numpy.datetime64)]
 
     def __call__(self, cols, meta):
         # Sets col.data to numpy array and col.type to io.ascii Type class (e.g.

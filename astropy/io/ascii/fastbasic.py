@@ -110,7 +110,7 @@ class FastBasic(metaclass=core.MetaBaseReader):
         conversion_info = self._read_header()
         self.check_header()
         if conversion_info is not None:
-            try_int, try_float, try_string = conversion_info
+            try_int, try_float, try_string,  = conversion_info
         else:
             try_int = {}
             try_float = {}
@@ -333,25 +333,34 @@ class FastRdb(FastBasic):
             raise ValueError('RDB header mismatch between number of '
                              'column names and column types')
 
-        if any(not re.match(r'\d*(N|S)$', x, re.IGNORECASE) for x in types):
+        if any(not re.match(r'\d*(N|S|D)$', x, re.IGNORECASE) for x in types):
             raise ValueError('RDB type definitions do not all match '
-                             '[num](N|S): {0}'.format(types))
+                             '[num](N|S|D): {0}'.format(types))
 
         try_int = {}
         try_float = {}
         try_string = {}
+        try_date = {}
 
         for name, col_type in zip(self.engine.get_names(), types):
             if col_type[-1].lower() == 's':
                 try_int[name] = 0
                 try_float[name] = 0
                 try_string[name] = 1
+                try_date[name] = 0
+            elif col_type[-1].lower() == 'd':
+                try_int[name] = 0
+                try_float[name] = 0
+                try_string[name] = 1
+                try_date[name] = 1
             else:
                 try_int[name] = 1
                 try_float[name] = 1
                 try_string[name] = 0
+                try_date[name] = 0
 
         self.engine.setup_tokenizer(tmp)
+        #return (try_int, try_float, try_string, try_date)
         return (try_int, try_float, try_string)
 
     def write(self, table, output):
