@@ -310,7 +310,8 @@ class RdbHeader(TabHeader):
     Header for RDB tables
     """
     col_type_map = {'n': core.NumType,
-                    's': core.StrType}
+                    's': core.StrType,
+                    'd': core.DateType}
 
     def get_type_map_key(self, col):
         return col.raw_type[-1]
@@ -344,7 +345,7 @@ class RdbHeader(TabHeader):
         if len(self.names) != len(raw_types):
             raise ValueError('RDB header mismatch between number of column names and column types')
 
-        if any(not re.match(r'\d*(N|S)$', x, re.IGNORECASE) for x in raw_types):
+        if any(not re.match(r'\d*(N|S|D)$', x, re.IGNORECASE) for x in raw_types):
             raise ValueError('RDB types definitions do not all match [num](N|S): {}'.format(raw_types))
 
         self._set_cols_from_names()

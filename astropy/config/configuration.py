@@ -346,11 +346,11 @@ class ConfigItem(object):
         secname = baseobj.name
 
         cobj = baseobj
-        # a ConfigObj's parent is itself, so we look for the parent with that
+        # a config's parent is itself, so we look for the parent with that
         while cobj.parent is not cobj:
             cobj = cobj.parent
 
-        newobj = configobj.ConfigObj(cobj.filename, interpolation=False)
+        newobj = configobj.config(cobj.filename, interpolation=False)
         if secname is not None:
             if secname not in newobj:
                 return baseobj.get(self.name)
@@ -456,7 +456,7 @@ class ConfigItem(object):
         return self._validator.check(self.cfgtype, val)
 
 
-# this dictionary stores the master copy of the ConfigObj's for each
+# this dictionary stores the master copy of the config's for each
 # root package
 _cfgobjs = {}
 
@@ -494,9 +494,9 @@ def get_config(packageormod=None, reload=False):
 
     Returns
     -------
-    cfgobj : ``configobj.ConfigObj`` or ``configobj.Section``
+    cfgobj : ``configobj.config`` or ``configobj.Section``
         If the requested package is a base package, this will be the
-        ``configobj.ConfigObj`` for that package, or if it is a subpackage or
+        ``configobj.config`` for that package, or if it is a subpackage or
         module, it will return the relevant ``configobj.Section`` object.
 
     Raises
@@ -523,7 +523,7 @@ def get_config(packageormod=None, reload=False):
     if cobj is None or reload:
         if _ASTROPY_SETUP_:
             # There's no reason to use anything but the default config
-            cobj = configobj.ConfigObj(interpolation=False)
+            cobj = configobj.config(interpolation=False)
         else:
             cfgfn = None
             try:
@@ -532,7 +532,7 @@ def get_config(packageormod=None, reload=False):
                     cfgfn = _override_config_file
                 else:
                     cfgfn = path.join(get_config_dir(), rootname + '.cfg')
-                cobj = configobj.ConfigObj(cfgfn, interpolation=False)
+                cobj = configobj.config(cfgfn, interpolation=False)
             except (IOError, OSError) as e:
                 msg = ('Configuration defaults will be used due to ')
                 errstr = '' if len(e.args) < 1 else (':' + str(e.args[0]))
@@ -542,7 +542,7 @@ def get_config(packageormod=None, reload=False):
 
                 # This caches the object, so if the file becomes accessible, this
                 # function won't see it unless the module is reloaded
-                cobj = configobj.ConfigObj(interpolation=False)
+                cobj = configobj.config(interpolation=False)
 
         _cfgobjs[rootname] = cobj
 
@@ -603,7 +603,7 @@ def is_unedited_config_file(content, template_content=None):
     # First determine if the config file has any effective content
     buffer = io.BytesIO(content)
     buffer.seek(0)
-    raw_cfg = configobj.ConfigObj(buffer, interpolation=True)
+    raw_cfg = configobj.config(buffer, interpolation=True)
     for v in six.itervalues(raw_cfg):
         if len(v):
             break
