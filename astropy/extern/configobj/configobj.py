@@ -10,16 +10,15 @@
 # This software is licensed under the terms of the BSD license.
 # http://opensource.org/licenses/BSD-3-Clause
 
-# config 5 - main repository for documentation and issue tracking:
+# ConfigObj 5 - main repository for documentation and issue tracking:
 # https://github.com/DiffSK/configobj
 
 import os
 import re
 import sys
-import collections
+from collections.abc import Mapping
 
 from codecs import BOM_UTF8, BOM_UTF16, BOM_UTF16_BE, BOM_UTF16_LE
-
 
 # imported lazily to avoid startup performance hit if it isn't used
 compiler = None
@@ -87,7 +86,7 @@ __all__ = (
     'ParseError',
     'DuplicateError',
     'ConfigspecError',
-    'config',
+    'ConfigObj',
     'SimpleVal',
     'InterpolationError',
     'InterpolationLoopError',
@@ -206,7 +205,7 @@ def unrepr(s):
 
 class ConfigObjError(SyntaxError):
     """
-    This is the base class for all errors that config raises.
+    This is the base class for all errors that ConfigObj raises.
     It is a subclass of SyntaxError.
     """
     def __init__(self, message='', line_number=None, line=''):
@@ -486,7 +485,7 @@ class Section(dict):
         """
         * parent is the section above
         * depth is the depth level of this section
-        * main is the main config
+        * main is the main ConfigObj
         * indict is a dictionary to initialise the section with
         """
         if indict is None:
@@ -594,7 +593,7 @@ class Section(dict):
             if key not in self:
                 self.sections.append(key)
             dict.__setitem__(self, key, value)
-        elif isinstance(value, collections.Mapping) and not unrepr:
+        elif isinstance(value, Mapping) and not unrepr:
             # First create the new depth level,
             # then create the section
             if key not in self:
@@ -794,15 +793,15 @@ class Section(dict):
         ...     [section1]
         ...     option1 = False
         ...     # end of file'''.splitlines()
-        >>> c1 = config(b)
-        >>> c2 = config(a)
+        >>> c1 = ConfigObj(b)
+        >>> c2 = ConfigObj(a)
         >>> c2.merge(c1)
         >>> c2
-        config({'section1': {'option1': 'False', 'subsection': {'more_options': 'False'}}})
+        ConfigObj({'section1': {'option1': 'False', 'subsection': {'more_options': 'False'}}})
         """
         for key, val in list(indict.items()):
-            if (key in self and isinstance(self[key], collections.Mapping) and
-                                isinstance(val, collections.Mapping)):
+            if (key in self and isinstance(self[key], Mapping) and
+                                isinstance(val, Mapping)):
                 self[key].merge(val)
             else:
                 self[key] = val
@@ -849,7 +848,7 @@ class Section(dict):
         unless ``raise_errors=False``, in which case set the return value to
         ``False``.
 
-        Any unrecognised keyword arguments you pass to walk, will be pased on
+        Any unrecognized keyword arguments you pass to walk, will be pased on
         to the function you pass in.
 
         Note: if ``call_on_sections`` is ``True`` then - on encountering a
@@ -868,9 +867,9 @@ class Section(dict):
 
         >>> config = '''[XXXXsection]
         ... XXXXkey = XXXXvalue'''.splitlines()
-        >>> cfg = config(config)
+        >>> cfg = ConfigObj(config)
         >>> cfg
-        config({'XXXXsection': {'XXXXkey': 'XXXXvalue'}})
+        ConfigObj({'XXXXsection': {'XXXXkey': 'XXXXvalue'}})
         >>> def transform(section, key):
         ...     val = section[key]
         ...     newkey = key.replace('XXXX', 'CLIENT1')
@@ -883,7 +882,7 @@ class Section(dict):
         >>> cfg.walk(transform, call_on_sections=True)
         {'CLIENT1section': {'CLIENT1key': None}}
         >>> cfg
-        config({'CLIENT1section': {'CLIENT1key': 'CLIENT1value'}})
+        ConfigObj({'CLIENT1section': {'CLIENT1key': 'CLIENT1value'}})
         """
         out = {}
         # scalars first
@@ -939,7 +938,7 @@ class Section(dict):
 
         Any other input will raise a ``ValueError``.
 
-        >>> a = config()
+        >>> a = ConfigObj()
         >>> a['a'] = 'fish'
         >>> a.as_bool('a')
         Traceback (most recent call last):
@@ -974,7 +973,7 @@ class Section(dict):
         If the value is an invalid literal for ``int``, a ``ValueError`` will
         be raised.
 
-        >>> a = config()
+        >>> a = ConfigObj()
         >>> a['a'] = 'fish'
         >>> a.as_int('a')
         Traceback (most recent call last):
@@ -997,7 +996,7 @@ class Section(dict):
         If the value is an invalid literal for ``float``, a ``ValueError`` will
         be raised.
 
-        >>> a = config()
+        >>> a = ConfigObj()
         >>> a['a'] = 'fish'
         >>> a.as_float('a')  #doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
@@ -1017,7 +1016,7 @@ class Section(dict):
         A convenience method which fetches the specified value, guaranteeing
         that it is a list.
 
-        >>> a = config()
+        >>> a = ConfigObj()
         >>> a['a'] = 1
         >>> a.as_list('a')
         [1]
@@ -1038,7 +1037,7 @@ class Section(dict):
         """
         Restore (and return) default value for the specified key.
 
-        This method will only work for a config that was created
+        This method will only work for a ConfigObj that was created
         with a configspec and has been validated.
 
         If there is no default value for this key, ``KeyError`` is raised.
@@ -1055,7 +1054,7 @@ class Section(dict):
         Recursively restore default values to all members
         that have them.
 
-        This method will only work for a config that was created
+        This method will only work for a ConfigObj that was created
         with a configspec and has been validated.
 
         It doesn't delete or modify entries without default values.
@@ -1067,7 +1066,7 @@ class Section(dict):
             self[section].restore_defaults()
 
 
-class config(Section):
+class ConfigObj(Section):
     """An object to read, create, and write config files."""
 
     _keyword = re.compile(r'''^ # line start
@@ -1178,7 +1177,7 @@ class config(Section):
         """
         Parse a config file or create a config file object.
 
-        ``config(infile=None, configspec=None, encoding=None,
+        ``ConfigObj(infile=None, configspec=None, encoding=None,
                     interpolation=True, raise_errors=False, list_values=True,
                     create_empty=False, file_error=False, stringify=True,
                     indent_type=None, default_encoding=None, unrepr=False,
@@ -1202,14 +1201,14 @@ class config(Section):
             options = _options
         else:
             import warnings
-            warnings.warn('Passing in an options dictionary to config() is '
+            warnings.warn('Passing in an options dictionary to ConfigObj() is '
                           'deprecated. Use **options instead.',
                           DeprecationWarning)
 
             # TODO: check the values too.
             for entry in options:
                 if entry not in OPTION_DEFAULTS:
-                    raise TypeError('Unrecognised option "%s".' % entry)
+                    raise TypeError('Unrecognized option "%s".' % entry)
             for entry, value in list(OPTION_DEFAULTS.items()):
                 if entry not in options:
                     options[entry] = value
@@ -1252,8 +1251,8 @@ class config(Section):
         elif isinstance(infile, dict):
             # initialise self
             # the Section class handles creating subsections
-            if isinstance(infile, config):
-                # get a copy of our config
+            if isinstance(infile, ConfigObj):
+                # get a copy of our ConfigObj
                 def set_section(in_section, this_section):
                     for entry in in_section.scalars:
                         this_section[entry] = in_section[entry]
@@ -1282,7 +1281,7 @@ class config(Section):
             raise TypeError('infile must be a filename, file like object, or list of lines.')
 
         if content:
-            # don't do it for the empty config
+            # don't do it for the empty ConfigObj
             content = self._handle_bom(content)
             # infile is now *always* a list
             #
@@ -1928,15 +1927,15 @@ class config(Section):
         """Parse the configspec."""
         # FIXME: Should we check that the configspec was created with the
         #        correct settings ? (i.e. ``list_values=False``)
-        if not isinstance(configspec, config):
+        if not isinstance(configspec, ConfigObj):
             try:
-                configspec = config(configspec,
+                configspec = ConfigObj(configspec,
                                        raise_errors=True,
                                        file_error=True,
                                        _inspec=True)
             except ConfigObjError as e:
                 # FIXME: Should these errors have a reference
-                #        to the already parsed config ?
+                #        to the already parsed ConfigObj ?
                 raise ConfigspecError('Parsing configspec failed: %s' % e)
             except IOError as e:
                 raise IOError('Reading configspec failed: %s' % e)
@@ -2010,7 +2009,7 @@ class config(Section):
 
     def write(self, outfile=None, section=None):
         """
-        Write the current config as a file
+        Write the current ConfigObj as a file
 
         tekNico: FIXME: use StringIO instead of real files
 
@@ -2018,7 +2017,7 @@ class config(Section):
         >>> a.filename = 'test.ini'
         >>> a.write()
         >>> a.filename = filename
-        >>> a == config('test.ini', raise_errors=True)
+        >>> a == ConfigObj('test.ini', raise_errors=True)
         1
         >>> import os
         >>> os.remove('test.ini')
@@ -2125,15 +2124,15 @@ class config(Section):
     def validate(self, validator, preserve_errors=False, copy=False,
                  section=None):
         """
-        Test the config against a configspec.
+        Test the ConfigObj against a configspec.
 
         It uses the ``validator`` object from *validate.py*.
 
-        To run ``validate`` on the current config, call: ::
+        To run ``validate`` on the current ConfigObj, call: ::
 
             test = config.validate(validator)
 
-        (Normally having previously passed in the configspec when the config
+        (Normally having previously passed in the configspec when the ConfigObj
         was created - you can dynamically assign a dictionary of checks to the
         ``configspec`` attribute of a section though).
 
@@ -2330,10 +2329,10 @@ class config(Section):
 
 
     def reset(self):
-        """Clear config instance and restore to 'freshly created' state."""
+        """Clear ConfigObj instance and restore to 'freshly created' state."""
         self.clear()
         self._initialise()
-        # FIXME: Should be done by '_initialise', but config constructor (and reload)
+        # FIXME: Should be done by '_initialise', but ConfigObj constructor (and reload)
         #        requires an empty dictionary
         self.configspec = None
         # Just to be sure ;-)
@@ -2342,9 +2341,9 @@ class config(Section):
 
     def reload(self):
         """
-        Reload a config from file.
+        Reload a ConfigObj from file.
 
-        This method raises a ``ReloadError`` if the config doesn't have
+        This method raises a ``ReloadError`` if the ConfigObj doesn't have
         a filename attribute pointing to a file.
         """
         if not isinstance(self.filename, str):
@@ -2373,7 +2372,7 @@ class SimpleVal(object):
 
     To use it, provide a configspec with all your members in (the value given
     will be ignored). Pass an instance of ``SimpleVal`` to the ``validate``
-    method of your ``config``. ``validate`` will return ``True`` if all
+    method of your ``ConfigObj``. ``validate`` will return ``True`` if all
     members are present, or a dictionary with True/False meaning
     present/missing. (Whole missing sections will be replaced with ``False``)
     """
@@ -2391,9 +2390,9 @@ class SimpleVal(object):
 def flatten_errors(cfg, res, levels=None, results=None):
     """
     An example function that will turn a nested dictionary of results
-    (as returned by ``config.validate``) into a flat list.
+    (as returned by ``ConfigObj.validate``) into a flat list.
 
-    ``cfg`` is the config instance being checked, ``res`` is the results
+    ``cfg`` is the ConfigObj instance being checked, ``res`` is the results
     dictionary returned by ``validate``.
 
     (This is a recursive function, so you shouldn't use the ``levels`` or
@@ -2434,7 +2433,7 @@ def flatten_errors(cfg, res, levels=None, results=None):
     for (key, val) in list(res.items()):
         if val == True:
             continue
-        if isinstance(cfg.get(key), collections.Mapping):
+        if isinstance(cfg.get(key), Mapping):
             # Go down one level
             levels.append(key)
             flatten_errors(cfg[key], val, levels, results)
@@ -2451,7 +2450,7 @@ def flatten_errors(cfg, res, levels=None, results=None):
 def get_extra_values(conf, _prepend=()):
     """
     Find all the values and sections not in the configspec from a validated
-    config.
+    ConfigObj.
 
     ``get_extra_values`` returns a list of tuples where each tuple represents
     either an extra section, or an extra value.
@@ -2462,7 +2461,7 @@ def get_extra_values(conf, _prepend=()):
     section the first member will be ``('foo',)``. For members in the 'bar'
     subsection of the 'foo' section the first member will be ``('foo', 'bar')``.
 
-    NOTE: If you call ``get_extra_values`` on a config instance that hasn't
+    NOTE: If you call ``get_extra_values`` on a ConfigObj instance that hasn't
     been validated it will return an empty list.
     """
     out = []
