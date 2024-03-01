@@ -148,6 +148,7 @@ class FastBasic(metaclass=core.MetaBaseReader):
             try_int = {}
             try_float = {}
             try_string = {}
+            try_date = {}
 
         with _set_locale("C"):
             data, comments = self.engine.read(try_int, try_float, try_string)
@@ -397,7 +398,7 @@ class FastRdb(FastBasic):
         if len(self.engine.get_names()) != len(types):
             types = [types[col_names.index(n)] for n in self.engine.get_names()]
 
-        if any(not re.match(r"\d*(N|S)$", x, re.IGNORECASE) for x in types):
+        if any(not re.match(r"\d*(N|S|D)$", x, re.IGNORECASE) for x in types):
             raise core.InconsistentTableError(
                 f"RDB type definitions do not all match [num](N|S): {types}"
             )
@@ -405,16 +406,24 @@ class FastRdb(FastBasic):
         try_int = {}
         try_float = {}
         try_string = {}
+        try_date = {}
 
         for name, col_type in zip(self.engine.get_names(), types):
             if col_type[-1].lower() == "s":
                 try_int[name] = 0
                 try_float[name] = 0
                 try_string[name] = 1
+                try_date[name] = 0
+            elif col_type[-1].lower() == 'd':
+                try_int[name] = 0
+                try_float[name] = 0
+                try_string[name] = 1
+                try_date[name] = 1
             else:
                 try_int[name] = 1
                 try_float[name] = 1
                 try_string[name] = 0
+                try_date[name] = 0
 
         self.engine.setup_tokenizer(tmp)
         return (try_int, try_float, try_string)

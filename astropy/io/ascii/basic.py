@@ -331,7 +331,7 @@ class RdbHeader(TabHeader):
     Header for RDB tables.
     """
 
-    col_type_map = {"n": core.NumType, "s": core.StrType}
+    col_type_map = {"n": core.NumType, "s": core.StrType, "d": core.DateType}
 
     def get_type_map_key(self, col):
         return col.raw_type[-1]
